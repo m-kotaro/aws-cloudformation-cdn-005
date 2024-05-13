@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  CustomParameter001:
+    Type: "String"
+    Description: "This is custom-parameter."
+    Default: "customname"
+  DomainName:
+    Type: "String"
+    Description: "This is domain name for CloudFront Distributoin."
+  AcmCertificateArn:
+    Type: "String"
+  HostedZoneId:
+    Type: "String"
+  AllowedIPAddress:
+    Type: "CommaDelimitedList"
+    Description: "Set the permitted IP addresses separated by commas.ex) 192.0.2.0,198.51.100.0,203.0.113.0"
+
+Resources:
+  # ------------------------------------------------------------#
+  # S3::Bucket
+  # ------------------------------------------------------------#
+  S3Bucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "s3-${CustomParameter001}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+
+  # ------------------------------------------------------------#
+  # CloudFront::OriginAccessControl
+  # ------------------------------------------------------------#
+  OAC:
+    Type: "AWS::CloudFront::OriginAccessControl"
+    Properties: 
+      OriginAccessControlConfig:
+        Description: Access Control
+        Name: !Sub "oac-${CustomParameter001}"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # ------------------------------------------------------------#
+  # CloudFront::Distribution
+  # ------------------------------------------------------------#
+  CloudFrontDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    DependsOn:
+          - S3Bucket
+          - CloudFrontFunctionAuth
+    Properties: 
+      DistributionConfig:
+        Comment: !Sub "cloudfront-${CustomParameter001}"
+        Aliases:
+          - !Ref DomainName
+        DefaultRootObject: "index.html"
+        DefaultCacheBehavior: 
+          AllowedMethods:
+            - GET
+            - HEAD
+          CachedMethods:
+            - GET
+            - HEAD
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+          TargetOriginId: !Ref S3Bucket
+          ViewerProtocolPolicy: "redirect-to-https"
+        #   FunctionAssociations: 
+        #     - EventType: viewer-request
+        #       FunctionARN: !GetAtt CloudFrontFunctionAuth.FunctionMetadata.FunctionARN
+        Enabled: true
+        Origins:
+          - DomainName: !GetAtt S3Bucket.RegionalDomainName
+            Id: !Ref S3Bucket
+            OriginAccessControlId: !GetAtt OAC.Id
+            S3OriginConfig: 
+              OriginAccessIdentity: ""
+        PriceClass: PriceClass_All
+        ViewerCertificate:
+          AcmCertificateArn: !Ref AcmCertificateArn
+          SslSupportMethod: sni-only
+
+  # ------------------------------------------------------------#
+  # S3::BucketPolicy
+  # ------------------------------------------------------------#
+  S3BucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    DependsOn: 
+      - S3Bucket
+      - CloudFrontDistribution
+      - OAC
+    Properties: 
+      Bucket: !Ref S3Bucket
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Sid: "AllowCloudFrontServicePrincipal"
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "cloudfront.amazonaws.com"
+            Action: 
+              - "s3:GetObject"
+            Resource: 
+              - !Sub ${S3Bucket.Arn}/*
+            Condition: 
+              StringEquals:
+                AWS:SourceArn: 
+                  - !Join 
+                    - ""
+                    - - !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/"
+                      - !Ref CloudFrontDistribution
+
+  # ------------------------------------------------------------#
+  # CloudFront::Function
+  # ------------------------------------------------------------#
+#   CloudFrontFunctionAuth:
+#     Type: "AWS::CloudFront::Function"
+#     Properties: 
+#       Name: !Sub "cfunc-${CustomParameter001}"
+#       FunctionConfig:
+#         Comment: 'IP Address autrh'
+#         Runtime: cloudfront-js-1.0
+#       FunctionCode: !Sub 
+#         - |
+#             function handler(event) {
+#                 var request = event.request;
+#                 var clientIP = event.viewer.ip;
+
+#                 var allowedIPAddress = ${allowedIPAddress}
+#                 var isPermittedIp = allowedIPAddress.includes(clientIP);
+
+#                 if (isPermittedIp) {
+#                     return request;
+#                 } else {
+#                     return {
+#                         statusCode: 403,
+#                         statusDescription: 'Forbidden',
+#                     };
+#                 }
+#             }
+#         - allowedIPAddress: { "Fn::ToJsonString": !Ref AllowedIPAddress }
+#       AutoPublish: true
+
+  # ------------------------------------------------------------#
+  # Route53::RecordSet
+  # ------------------------------------------------------------#
+  DnsRecord:
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      Name: !Ref DomainName
+      Type: A
+      HostedZoneId: !Ref HostedZoneId
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2 # this is AWS-specific constant value
