@@ -1,10 +1,11 @@
 AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
 
 Parameters:
   CustomParameter001:
     Type: "String"
     Description: "This is custom-parameter."
-    Default: "customname"
+    Default: "custom-parameter"
   DomainName:
     Type: "String"
     Description: "This is domain name for CloudFront Distributoin."
@@ -15,6 +16,11 @@ Parameters:
   AllowedIPAddress:
     Type: "CommaDelimitedList"
     Description: "Set the permitted IP addresses separated by commas.ex) 192.0.2.0,198.51.100.0,203.0.113.0"
+    Default: "0.0.0.0"
+  LambdaEdgeFunctionAlias:
+    Type: "String"
+    # Description: "Set the permitted IP addresses separated by commas.ex) 192.0.2.0,198.51.100.0,203.0.113.0"
+    Default: "alias"
 
 Resources:
   # ------------------------------------------------------------#
@@ -49,8 +55,8 @@ Resources:
   CloudFrontDistribution:
     Type: "AWS::CloudFront::Distribution"
     DependsOn:
-          - S3Bucket
-          - CloudFrontFunctionAuth
+      - S3Bucket
+      - LambdaFunction
     Properties: 
       DistributionConfig:
         Comment: !Sub "cloudfront-${CustomParameter001}"
@@ -67,9 +73,12 @@ Resources:
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
           TargetOriginId: !Ref S3Bucket
           ViewerProtocolPolicy: "redirect-to-https"
-        #   FunctionAssociations: 
-        #     - EventType: viewer-request
-        #       FunctionARN: !GetAtt CloudFrontFunctionAuth.FunctionMetadata.FunctionARN
+          LambdaFunctionAssociations:
+            - EventType: viewer-request
+              LambdaFunctionARN: !Ref "arn:aws:lambda:us-east-1:${AWS::AccountId}:function:${LambdaFunction}:${LambdaEdgeFunctionAlias}"
+          LambdaFunctionAssociations:
+            - EventType: "viewer-request"
+              LambdaFunctionARN: !Ref LambdaFunction.Version
         Enabled: true
         Origins:
           - DomainName: !GetAtt S3Bucket.RegionalDomainName
@@ -114,35 +123,71 @@ Resources:
                       - !Ref CloudFrontDistribution
 
   # ------------------------------------------------------------#
-  # CloudFront::Function
+  # IAM::Role
   # ------------------------------------------------------------#
-#   CloudFrontFunctionAuth:
-#     Type: "AWS::CloudFront::Function"
-#     Properties: 
-#       Name: !Sub "cfunc-${CustomParameter001}"
-#       FunctionConfig:
-#         Comment: 'IP Address autrh'
-#         Runtime: cloudfront-js-1.0
-#       FunctionCode: !Sub 
-#         - |
-#             function handler(event) {
-#                 var request = event.request;
-#                 var clientIP = event.viewer.ip;
+  LambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub "role-auth-lmd-${CustomParameter001}"
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "edgelambda.amazonaws.com"
+                - "lambda.amazonaws.com"
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 
-#                 var allowedIPAddress = ${allowedIPAddress}
-#                 var isPermittedIp = allowedIPAddress.includes(clientIP);
+  # ------------------------------------------------------------#
+  # Serverless::Function
+  # ------------------------------------------------------------#
+  LambdaFunction:
+    Type: "AWS::Serverless::Function"
+    Properties:
+      FunctionName: !Sub "lmd-auth-${CustomParameter001}"
+      Handler: index.handler
+      Runtime: nodejs20.x
+      MemorySize: 128
+      Timeout: 5
+      Role: !GetAtt LambdaRole.Arn
+      AutoPublishAlias: !Ref LambdaEdgeFunctionAlias
+      InlineCode: |
+        exports.handler = (event, context, callback) => {
+            const request = event.Records[0].cf.request;
+            const headers = request.headers;
+            const authUser = 'user';
+            const authPass = 'pass';
+            const authString = 'Basic ' + new Buffer(`${authUser}:${authPass}`).toString('base64');
+            if (typeof headers.authorization == 'undefined' || headers.authorization[0].value != authString) {
+                const response = {
+                    status: '401',
+                    statusDescription: 'Unauthorized',
+                    body: 'Unauthorized',
+                    headers: {
+                        'www-authenticate': [{ key: 'WWW-Authenticate', value:'Basic' }],
+                    },
+                };
+                callback(null, response);
+            } else {
+                callback(null, request);
+            }
+        };
 
-#                 if (isPermittedIp) {
-#                     return request;
-#                 } else {
-#                     return {
-#                         statusCode: 403,
-#                         statusDescription: 'Forbidden',
-#                     };
-#                 }
-#             }
-#         - allowedIPAddress: { "Fn::ToJsonString": !Ref AllowedIPAddress }
-#       AutoPublish: true
+  # ------------------------------------------------------------#
+  # Logs::LogGroup
+  # ------------------------------------------------------------#
+  LogGroup:
+    Type: "AWS::Logs::LogGroup"
+    DependsOn:
+      - LambdaFunction
+    Properties:
+      RetentionInDays: 1
+      LogGroupName: !Sub "/aws/lambda/${LambdaFunction}"
 
   # ------------------------------------------------------------#
   # Route53::RecordSet
