@@ -5,7 +5,7 @@ Parameters:
   CustomParameter001:
     Type: "String"
     Description: "This is custom-parameter."
-    Default: "customkotaro"
+    Default: "custom-parameter"
   DomainName:
     Type: "String"
     Description: "This is domain name for CloudFront Distributoin."
