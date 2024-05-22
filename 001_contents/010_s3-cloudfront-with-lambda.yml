@@ -1,5 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Transform: "AWS::Serverless-2016-10-31"
+Transform:
+  - "AWS::Serverless-2016-10-31"
+  - "AWS::LanguageExtensions"
 
 Parameters:
   CustomParameter001:
@@ -19,7 +21,6 @@ Parameters:
     Default: "0.0.0.0"
   LambdaEdgeFunctionAlias:
     Type: "String"
-    # Description: "Set the permitted IP addresses separated by commas.ex) 192.0.2.0,198.51.100.0,203.0.113.0"
     Default: "alias"
 
 Resources:
@@ -73,9 +74,6 @@ Resources:
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
           TargetOriginId: !Ref S3Bucket
           ViewerProtocolPolicy: "redirect-to-https"
-          LambdaFunctionAssociations:
-            - EventType: viewer-request
-              LambdaFunctionARN: !Ref "arn:aws:lambda:us-east-1:${AWS::AccountId}:function:${LambdaFunction}:${LambdaEdgeFunctionAlias}"
           LambdaFunctionAssociations:
             - EventType: "viewer-request"
               LambdaFunctionARN: !Ref LambdaFunction.Version
@@ -156,27 +154,48 @@ Resources:
       Timeout: 5
       Role: !GetAtt LambdaRole.Arn
       AutoPublishAlias: !Ref LambdaEdgeFunctionAlias
-      InlineCode: |
-        exports.handler = (event, context, callback) => {
-            const request = event.Records[0].cf.request;
-            const headers = request.headers;
-            const authUser = 'user';
-            const authPass = 'pass';
-            const authString = 'Basic ' + new Buffer(`${authUser}:${authPass}`).toString('base64');
-            if (typeof headers.authorization == 'undefined' || headers.authorization[0].value != authString) {
-                const response = {
-                    status: '401',
-                    statusDescription: 'Unauthorized',
-                    body: 'Unauthorized',
-                    headers: {
-                        'www-authenticate': [{ key: 'WWW-Authenticate', value:'Basic' }],
-                    },
+      InlineCode: !Sub
+        - |
+            function handler(event) {
+
+              var request = event.request;
+              var clientIP = event.viewer.ip;
+            
+              var allowedIPAddress = ${allowedIPAddress}
+              var isPermittedIp = allowedIPAddress.includes(clientIP);
+            
+              if (isPermittedIp) {
+
+                // echo -n user:pass | base64
+                var authString = "Basic ${authString}";
+            
+                if (
+                  typeof headers.authorization === "undefined" ||
+                  headers.authorization.value !== authString
+                ) {
+                  return {
+                    statusCode: 401,
+                    statusDescription: "Unauthorized",
+                    headers: { "www-authenticate": { value: "Basic" } }
+                  };
+                }
+
+                return request;
+              } else {
+                return {
+                  statusCode: 403,
+                  statusDescription: 'Forbidden',
                 };
-                callback(null, response);
-            } else {
-                callback(null, request);
+              }
             }
-        };
+        - authString: !Base64 { "Fn::Join": [ ":", [ { "Ref": "User" }, { "Ref": "Password" } ] ] }
+          allowedIPAddress: { "Fn::ToJsonString": !Ref AllowedIPAddress }
+#             Fn::Join: [ ":", [ !Ref User,  !Ref Password ] ]
+# { "Fn::Join": [ ":", [ { "Ref": "User" }, { "Ref": "Password" } ] ] }
+
+        # - 
+        # - allowedIPAddress: { "Fn::ToJsonString": !Ref AllowedIPAddress }
+        #   authString : Fn::Base64: !Join [ ":", [ !Ref User,  !Ref Password ] ]
 
   # ------------------------------------------------------------#
   # Logs::LogGroup
