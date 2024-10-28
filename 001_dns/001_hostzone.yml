@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  DomainName:
+    Type: "String"
+
+Resources:
+  # ------------------------------------------------------------#
+  # Route53::HostedZone
+  # ------------------------------------------------------------#
+  HostedZone:
+    Type: "AWS::Route53::HostedZone"
+    Properties:
+      Name: !Ref DomainName
+
+Outputs:
+  ConnectionGitHub:
+    Value: !Ref ConnectionGitHub
+    Export:
+      Name: !Sub "git-${GitHubOrganizationName}-${CustomParameter001}"
