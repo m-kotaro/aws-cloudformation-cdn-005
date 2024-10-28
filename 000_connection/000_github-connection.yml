@@ -5,6 +5,9 @@ Parameters:
     Type: "String"
     Description: "This is custom-parameter."
     Default: "custom001"
+  GitHubOrganizationName:
+    Type: "String"
+    Default: "custom001"
 
 Resources:
   # ------------------------------------------------------------#

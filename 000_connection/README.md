@@ -17,6 +17,7 @@ GitHub接続のリソースを構築する。
 
 ```bash
 export CustomParameter001=# custom001
+export GitHubOrganizationName=# YOUR_ORGANIZATION_NAME
 
 ```
 
@@ -24,7 +25,8 @@ export CustomParameter001=# custom001
 aws cloudformation create-stack \
     --stack-name ${CustomParameter001}-github-connection \
     --template-body file://000_connection/000_github-connection.yml \
-    --parameters ParameterKey=CustomParameter001,ParameterValue=$CustomParameter001
+    --parameters ParameterKey=CustomParameter001,ParameterValue=$CustomParameter001 \
+                 ParameterKey=GitHubOrganizationName,ParameterValue=$GitHubOrganizationName
 
 ```
 
