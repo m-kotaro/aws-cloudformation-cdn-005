@@ -8,7 +8,6 @@ GitHub接続のリソースを構築する。
 
  - CodeStarConnections::Connection
 
-
 ## 構築コマンド
 
 ### 環境変数設定
@@ -21,6 +20,8 @@ export GitHubOrganizationName=# YOUR_ORGANIZATION_NAME
 
 ```
 
+### CloudFormtion実行
+
 ```bash
 aws cloudformation create-stack \
     --stack-name ${CustomParameter001}-github-connection \
@@ -29,4 +30,3 @@ aws cloudformation create-stack \
                  ParameterKey=GitHubOrganizationName,ParameterValue=$GitHubOrganizationName
 
 ```
-
