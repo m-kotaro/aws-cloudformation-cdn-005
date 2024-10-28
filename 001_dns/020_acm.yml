@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  DomainName:
+    Type: "String"
+
+Resources:
+  # ------------------------------------------------------------#
+  # CertificateManager::Certificate
+  # ------------------------------------------------------------#
+  CertificateManager:
+    Type: "AWS::CertificateManager::Certificate"
+    Properties:
+      DomainName: !Ref DomainName
+      # DomainValidationOptions: 
+      #   - !Sub "*.{DomainName}"
+      SubjectAlternativeNames: 
+        - !Sub "*.{DomainName}"
+      ValidationMethod: "DNS"
+
+
+Outputs:
+  ConnectionGitHub:
+    Value: !Ref ConnectionGitHub
+    Export:
+      Name: !Sub "git-${GitHubOrganizationName}-${CustomParameter001}"
+
+
+
+# Type: AWS::CertificateManager::Certificate
+# Properties:
+#   CertificateAuthorityArn: String
+#   CertificateTransparencyLoggingPreference: String
+#   DomainName: String
+#   DomainValidationOptions: 
+#     - DomainValidationOption
+#   KeyAlgorithm: String
+#   SubjectAlternativeNames: 
+#     - String
+#   Tags: 
+#     - Tag
+#   ValidationMethod: String

@@ -1,4 +1,4 @@
-# 000_connection
+# 001_dns
 
 ## 概要
 
@@ -6,7 +6,8 @@ GitHub接続のリソースを構築する。
 
 ## 構築リソース
 
- - CodeStarConnections::Connection
+ - Route53::HostedZone
+ - 
 
 ## 構築コマンド
 
@@ -25,7 +26,7 @@ export GitHubOrganizationName=# YOUR_ORGANIZATION_NAME
 ```bash
 aws cloudformation create-stack \
     --stack-name ${CustomParameter001}-github-connection \
-    --template-body file://000_connection/000_github-connection.yml \
+    --template-body file://001_dns/010_hostzone.yml \
     --parameters ParameterKey=CustomParameter001,ParameterValue=$CustomParameter001 \
                  ParameterKey=GitHubOrganizationName,ParameterValue=$GitHubOrganizationName
 
