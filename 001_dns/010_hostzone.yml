@@ -1,6 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Parameters:
+  CustomParameter001:
+    Type: "String"
+    Description: "This is custom-parameter."
   DomainName:
     Type: "String"
 
@@ -14,7 +17,7 @@ Resources:
       Name: !Ref DomainName
 
 Outputs:
-  ConnectionGitHub:
-    Value: !Ref ConnectionGitHub
+  HostedZone:
+    Value: !Ref DomainName
     Export:
-      Name: !Sub "git-${GitHubOrganizationName}-${CustomParameter001}"
+      Name: !Sub "hostzoneid-${CustomParameter001}"

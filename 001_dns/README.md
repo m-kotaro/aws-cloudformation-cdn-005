@@ -7,7 +7,7 @@ GitHub接続のリソースを構築する。
 ## 構築リソース
 
  - Route53::HostedZone
- - 
+ - CertificateManager::Certificate
 
 ## 構築コマンド
 
@@ -17,17 +17,30 @@ GitHub接続のリソースを構築する。
 
 ```bash
 export CustomParameter001=# custom001
-export GitHubOrganizationName=# YOUR_ORGANIZATION_NAME
+export DomainName=# YOUR_DOMAIN_NAME
 
 ```
 
 ### CloudFormtion実行
 
+#### hostzone
+
 ```bash
 aws cloudformation create-stack \
-    --stack-name ${CustomParameter001}-github-connection \
+    --stack-name ${CustomParameter001}-hostzone \
     --template-body file://001_dns/010_hostzone.yml \
-    --parameters ParameterKey=CustomParameter001,ParameterValue=$CustomParameter001 \
-                 ParameterKey=GitHubOrganizationName,ParameterValue=$GitHubOrganizationName
+    --parameters ParameterKey=DomainName,ParameterValue=$DomainName \
+                 ParameterKey=CustomParameter001,ParameterValue=$CustomParameter001
+
+```
+
+#### acm
+
+```bash
+aws cloudformation create-stack \
+    --stack-name ${CustomParameter001}-acm \
+    --template-body file://001_dns/020_acm.yml \
+    --parameters ParameterKey=DomainName,ParameterValue=$DomainName \
+                 ParameterKey=CustomParameter001,ParameterValue=$CustomParameter001
 
 ```
