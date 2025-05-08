@@ -1,41 +1,71 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "CodePipeline with IAM"
+Description: "Cognito with ParameterStore"
 
 Parameters:
   SystemCode:
     Type: "String"
   SystemEnv:
     Type: "String"
-  FullRepositoryId:
-    Type: "String"
-  BranchName:
-    Type: "String"
 
 Resources:
   CognitoUserPool:
     Type: "AWS::Cognito::UserPool"
     Properties:
-      UserPoolName: !Sub "cognito-${SystemCode}-${SystemEnv}-user-pool"
+      UserPoolName: !Sub "cgnt-${SystemCode}-${SystemEnv}-user-pool"
 
-  # CognitoUserPoolDomain:
-  #   Type: "AWS::Cognito::UserPoolDomain"
-  #   Properties:
-  #     Domain: { Fn::ImportValue: !Sub "hostedzone-${SystemCode}-${SystemEnv}-name" }
-  #     UserPoolId: !Ref CognitoUserPool
+  CognitoUserPoolDomain:
+    Type: "AWS::Cognito::UserPoolDomain"
+    Properties:
+      Domain: !Sub "cgnt-${SystemCode}-${SystemEnv}-user-pool-domain"
+      UserPoolId: !Ref CognitoUserPool
 
-  # CognitoUserPoolClient:
-  #   Type: "AWS::Cognito::UserPoolClient"
-  #   Properties:
-  #     ClientName: !Sub "cognito-${SystemCode}-${SystemEnv}-client"
-  #     UserPoolId: !Ref CognitoUserPool
-  #     CallbackURLs:
-  #       - !Join ["", [https://, !GetAtt CloudFrontDistribution.DomainName]]
-  #     SupportedIdentityProviders:
-  #       - COGNITO
-  #     AllowedOAuthFlows:
-  #       - code
-  #     AllowedOAuthFlowsUserPoolClient: true
-  #     AllowedOAuthScopes:
-  #       - openid
+  CognitoUserPoolClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      ClientName: !Sub "cgnt-${SystemCode}-${SystemEnv}-client"
+      UserPoolId: !Ref CognitoUserPool
+      CallbackURLs:
+        - !Join 
+          - ""
+          - - "https://"
+            - { Fn::ImportValue: !Sub "hostedzone-${SystemCode}-${SystemEnv}-name" }
+      SupportedIdentityProviders:
+        - COGNITO
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - openid
 
+  SSMParameterRegion:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "param-${SystemCode}-${SystemEnv}-region"
+      Type: "String"
+      Value: !Ref AWS::Region
 
+  SSMParameterUserPoolId:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "param-${SystemCode}-${SystemEnv}-user-pool-id"
+      Type: "String"
+      Value: !Ref CognitoUserPool
+
+  SSMParameterUserPoolAppId:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "param-${SystemCode}-${SystemEnv}-user-pool-app-id"
+      Type: "String"
+      Value: !Ref CognitoUserPoolClient
+
+  SSMParameterUserPoolDomain:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub "param-${SystemCode}-${SystemEnv}-user-pool-domain"
+      Type: "String"
+      Value: !Join ["", ["https://", !Ref CognitoUserPoolDomain, !Sub ".auth.${AWS::Region}.amazoncognito.com"]]
+
+  # region: 'us-east-1', // user pool region
+  # userPoolId: 'us-east-1_tyo1a1FHH', // user pool ID
+  # userPoolAppId: '63gcbm2jmskokurt5ku9fhejc6', // user pool app client ID
+  # userPoolDomain: 'domain.auth.us-east-1.amazoncognito.com', // user pool domain
