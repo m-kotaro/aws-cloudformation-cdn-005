@@ -23,7 +23,7 @@ SYSTEM_ENV=   # Your system environment (e.g., dev, stg, prd, 000, 111)
 ### CloudFormation実行
 
 ```bash
-aws cloudformation create-stack --stack-name stack-$SYSTEM_CODE-$SYSTEM_ENV-cognito --template-body file://template/05_lambda-edge/05_lambda-edge.yml --parameters ParameterKey=SystemCode,ParameterValue=$SYSTEM_CODE ParameterKey=SystemEnv,ParameterValue=$SYSTEM_ENV --region us-east-1
-aws cloudformation wait stack-create-complete --stack-name stack-$SYSTEM_CODE-$SYSTEM_ENV-cognito --region us-east-1
+aws cloudformation create-stack --stack-name stack-$SYSTEM_CODE-$SYSTEM_ENV-lambda-edge --template-body file://template/05_lambda-edge/05_lambda-edge.yml --parameters ParameterKey=SystemCode,ParameterValue=$SYSTEM_CODE ParameterKey=SystemEnv,ParameterValue=$SYSTEM_ENV --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM --region us-east-1
+aws cloudformation wait stack-create-complete --stack-name stack-$SYSTEM_CODE-$SYSTEM_ENV-lambda-edge --region us-east-1
 
 ```

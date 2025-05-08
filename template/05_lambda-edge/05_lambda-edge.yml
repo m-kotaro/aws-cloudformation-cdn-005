@@ -37,6 +37,15 @@ Resources:
                   - cloudfront:CreateDistribution
                   - cloudfront:UpdateDistribution
                 Resource: '*'
+        - PolicyName: "policy-ssm-control"
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ssm:GetParameter"
+                  - "ssm:GetParameters"
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/param-${SystemCode}-${SystemEnv}-*"
 
   LambdaFunction:
     Type: "AWS::Lambda::Function"
