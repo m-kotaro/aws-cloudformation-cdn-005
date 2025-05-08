@@ -27,3 +27,22 @@ aws cloudformation create-stack --stack-name stack-$SYSTEM_CODE-$SYSTEM_ENV-lamb
 aws cloudformation wait stack-create-complete --stack-name stack-$SYSTEM_CODE-$SYSTEM_ENV-lambda-edge --region us-east-1
 
 ```
+
+### Lambda edge デプロイ
+
+```bash
+export COGNITO_OUTPUTS=$(aws cloudformation describe-stacks --stack-name stack-$SYSTEM_CODE-$SYSTEM_ENV-cognito --query "Stacks[0].Outputs" --output json --region us-east-1)
+
+export COGNITO_USER_POOL_ID=$(echo "$HOSTEDZONE_OUTPUTS" | jq -r '.[] | select(.OutputKey=="CognitoUserPoolId") | .OutputValue')
+export COGNITO_USER_POOL_APP_ID=$(echo "$HOSTEDZONE_OUTPUTS" | jq -r '.[] | select(.OutputKey=="CognitoUserPoolAppId") | .OutputValue')
+export COGNITO_USER_POOL_DOMAIN=$(echo "$HOSTEDZONE_OUTPUTS" | jq -r '.[] | select(.OutputKey=="CognitoUserPoolDomain") | .OutputValue')
+
+# コードを置換
+sed -i '' \
+ -e "s|{{CognitoUserPoolId}}|${COGNITO_USER_POOL_ID}|g" \
+ -e "s|{{CognitoUserPoolAppId}}|${COGNITO_USER_POOL_APP_ID}|g" \
+ -e "s|{{CognitoUserPoolDomain}}|${COGNITO_USER_POOL_DOMAIN}|g" \
+./index.js 
+
+```
+

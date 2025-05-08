@@ -37,30 +37,17 @@ Resources:
       AllowedOAuthScopes:
         - openid
 
-  SSMParameterRegion:
-    Type: "AWS::SSM::Parameter"
-    Properties:
-      Name: !Sub "param-${SystemCode}-${SystemEnv}-region"
-      Type: "String"
-      Value: !Ref AWS::Region
 
-  SSMParameterUserPoolId:
-    Type: "AWS::SSM::Parameter"
-    Properties:
-      Name: !Sub "param-${SystemCode}-${SystemEnv}-user-pool-id"
-      Type: "String"
-      Value: !Ref CognitoUserPool
-
-  SSMParameterUserPoolAppId:
-    Type: "AWS::SSM::Parameter"
-    Properties:
-      Name: !Sub "param-${SystemCode}-${SystemEnv}-user-pool-app-id"
-      Type: "String"
-      Value: !Ref CognitoUserPoolClient
-
-  SSMParameterUserPoolDomain:
-    Type: "AWS::SSM::Parameter"
-    Properties:
-      Name: !Sub "param-${SystemCode}-${SystemEnv}-user-pool-domain"
-      Type: "String"
-      Value: !Join ["", ["https://", !Ref CognitoUserPoolDomain, !Sub ".auth.${AWS::Region}.amazoncognito.com"]]
+Outputs:
+  CognitoUserPoolId:
+    Value: !Ref CognitoUserPool
+    Export:
+      Name: !Sub "cgnt-${SystemCode}-${SystemEnv}-user-pool-id"
+  CognitoUserPoolAppId:
+    Value: !Ref CognitoUserPoolClient
+    Export:
+      Name: !Sub "cgnt-${SystemCode}-${SystemEnv}-user-pool-app-id"
+  CognitoUserPoolDomain:
+    Value: !Sub "${CognitoUserPoolDomain}.auth.${AWS::Region}.amazoncognito.com"
+    Export:
+      Name: !Sub "cgnt-${SystemCode}-${SystemEnv}-user-pool-domain"

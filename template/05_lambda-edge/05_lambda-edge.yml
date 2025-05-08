@@ -9,7 +9,7 @@ Parameters:
 
 Resources:
   LambdaRole:
-    Type: AWS::IAM::Role
+    Type: "AWS::IAM::Role"
     Properties:
       RoleName: !Sub "role-${SystemCode}-${SystemEnv}-lambda-edge"
       AssumeRolePolicyDocument:
@@ -23,7 +23,7 @@ Resources:
             Action:
               - sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
       Policies:
         - PolicyName: "temp-policy"
           PolicyDocument:
