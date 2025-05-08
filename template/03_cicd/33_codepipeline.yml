@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "CodePipeline with IAM"
+
+Parameters:
+  SystemCode:
+    Type: "String"
+  SystemEnv:
+    Type: "String"
+  RepositoryName:
+    Type: "String"
+  BranchName:
+    Type: "String"
+  GitHubOrganizationName:
+    Type: "String"
+
+Resources:
+  IAMRoleCodepipeline:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/service-role/"
+      RoleName: !Sub "codepipeline-${SystemCode}-${SystemEnv}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "codepipeline.amazonaws.com"
+            Action: "sts:AssumeRole"
+      MaxSessionDuration: 3600
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSCodeStarServiceRole"
+
+  InlinePolicyCodePipeline:
+    Type: "AWS::IAM::Policy"
+    DependsOn: IAMRoleCodepipeline
+    Properties:
+      PolicyName: !Sub "policy-s3-access"
+      Roles:
+        - !Ref IAMRoleCodepipeline
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "s3:PutObject"
+            Resource:
+              - !Sub "arn:aws:s3:::s3-${SystemCode}-${SystemEnv}-codepipeline"
+              - !Sub "arn:aws:s3:::s3-${SystemCode}-${SystemEnv}-codepipeline/*"
+          - Effect: "Allow"
+            Action:
+              - "codestar-connections:UseConnection"
+              - "codestar-connections:GetConnection"
+            Resource: "*"
+          - Effect: "Allow"
+            Action:
+              - "codebuild:*"
+            Resource:
+              -  { Fn::ImportValue: !Sub "codebuild-${SystemCode}-${SystemEnv}-arn" }
+
+  CodePipelinePipeline:
+    Type: "AWS::CodePipeline::Pipeline"
+    DependsOn:
+      - IAMRoleCodepipeline
+      - InlinePolicyCodePipeline
+    Properties:
+      Name: !Sub "codepipeline-${SystemCode}-${SystemEnv}"
+      RoleArn: !GetAtt IAMRoleCodepipeline.Arn
+      ArtifactStore: 
+        Location: { Fn::ImportValue: !Sub "s3-${SystemCode}-${SystemEnv}-codepipeline" }
+        Type: "S3"
+      Stages: 
+        - Name: "Source"
+          Actions: 
+            - Name: "Source"
+              ActionTypeId: 
+                Category: "Source"
+                Owner: "AWS"
+                Provider: "CodeStarSourceConnection"
+                Version: "1"
+              Configuration: 
+                BranchName: !Ref BranchName
+                ConnectionArn: { Fn::ImportValue: !Sub "git-${SystemCode}-${SystemEnv}-arn" }
+                FullRepositoryId: !Sub "${GitHubOrganizationName}/${RepositoryName}"
+                OutputArtifactFormat: "CODE_ZIP"
+              OutputArtifacts: 
+                - Name: "SourceArtifact"
+              Region: !Ref AWS::Region
+              Namespace: "SourceVariables"
+              RunOrder: 1
+        - Name: "Build"
+          Actions: 
+            - Name: "Build"
+              ActionTypeId: 
+                Category: "Test"
+                Owner: "AWS"
+                Provider: "CodeBuild"
+                Version: "1"
+              Configuration: 
+                ProjectName: { Fn::ImportValue: !Sub "codebuild-${SystemCode}-${SystemEnv}" }
+              InputArtifacts: 
+                - Name: "SourceArtifact"
+              Region: !Ref AWS::Region
+              RunOrder: 1
