@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Cognito with ParameterStore"
+
+Parameters:
+  SystemCode:
+    Type: "String"
+  SystemEnv:
+    Type: "String"
+
+Resources:
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "role-${SystemCode}-${SystemEnv}-lambda-edge"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+              - edgelambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: "temp-policy"
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:GetFunction
+                  - lambda:EnableReplication*
+                  - iam:CreateServiceLinkedRole
+                  - cloudfront:CreateDistribution
+                  - cloudfront:UpdateDistribution
+                Resource: '*'
+
+  LambdaFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: !Sub "lmd-${SystemCode}-${SystemEnv}-auth"
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: "nodejs22.x"
+      Handler: index.handler
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            const response = {
+                status: 200,
+                body: JSON.stringify('Hello from Lambda!'),
+            };
+            return response;
+          };
