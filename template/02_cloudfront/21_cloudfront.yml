@@ -6,10 +6,6 @@ Parameters:
     Type: "String"
   SystemEnv:
     Type: "String"
-  User:
-    Type: "String"
-  Password:
-    Type: "String"
 
 Resources:
   OAC:
@@ -41,9 +37,6 @@ Resources:
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
           TargetOriginId: !Sub "s3-${SystemCode}-${SystemEnv}-contents-asset"
           ViewerProtocolPolicy: "redirect-to-https"
-          FunctionAssociations: 
-            - EventType: "viewer-request"
-              FunctionARN: !GetAtt CloudFrontFunctionBasicAuth.FunctionMetadata.FunctionARN
         Enabled: true
         Origins:
           - DomainName: !Sub "s3-${SystemCode}-${SystemEnv}-contents-asset.s3.ap-northeast-1.amazonaws.com"
@@ -88,39 +81,6 @@ Resources:
                       - ""
                       - - !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/"
                         - !Ref CloudFrontDistribution
-
-  CloudFrontFunctionBasicAuth:
-    Type: "AWS::CloudFront::Function"
-    Properties: 
-      Name: !Sub "func-${SystemCode}-${SystemEnv}-basic-auth"
-      FunctionConfig:
-        Comment: 'Basic Authentication'
-        Runtime: cloudfront-js-1.0
-      FunctionCode: !Sub 
-        - |
-          function handler(event) {
-            var request = event.request;
-            var headers = request.headers;
-
-            // echo -n user:pass | base64
-            var authString = "Basic ${authString}";
-
-            if (
-              typeof headers.authorization === "undefined" ||
-              headers.authorization.value !== authString
-            ) {
-              return {
-                statusCode: 401,
-                statusDescription: "Unauthorized",
-                headers: { "www-authenticate": { value: "Basic" } }
-              };
-            }
-
-            return request;
-          }
-        - authString : !Base64
-            Fn::Join: [ ":", [ !Ref User,  !Ref Password ] ]
-      AutoPublish: true
 
   DnsRecord:
     Type: "AWS::Route53::RecordSet"
