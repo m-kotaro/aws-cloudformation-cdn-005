@@ -9,7 +9,7 @@ Parameters:
 
 Resources:
   LambdaRole:
-    Type: AWS::IAM::Role
+    Type: "AWS::IAM::Role"
     Properties:
       RoleName: !Sub "role-${SystemCode}-${SystemEnv}-lambda-edge"
       AssumeRolePolicyDocument:
@@ -23,7 +23,7 @@ Resources:
             Action:
               - sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
       Policies:
         - PolicyName: "temp-policy"
           PolicyDocument:
@@ -37,6 +37,15 @@ Resources:
                   - cloudfront:CreateDistribution
                   - cloudfront:UpdateDistribution
                 Resource: '*'
+        - PolicyName: "policy-ssm-control"
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ssm:GetParameter"
+                  - "ssm:GetParameters"
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/param-${SystemCode}-${SystemEnv}-*"
 
   LambdaFunction:
     Type: "AWS::Lambda::Function"
