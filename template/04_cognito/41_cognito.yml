@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "CodePipeline with IAM"
+
+Parameters:
+  SystemCode:
+    Type: "String"
+  SystemEnv:
+    Type: "String"
+  FullRepositoryId:
+    Type: "String"
+  BranchName:
+    Type: "String"
+
+Resources:
+  CognitoUserPool:
+    Type: "AWS::Cognito::UserPool"
+    Properties:
+      UserPoolName: !Sub "cognito-${SystemCode}-${SystemEnv}-user-pool"
+
+  # CognitoUserPoolDomain:
+  #   Type: "AWS::Cognito::UserPoolDomain"
+  #   Properties:
+  #     Domain: { Fn::ImportValue: !Sub "hostedzone-${SystemCode}-${SystemEnv}-name" }
+  #     UserPoolId: !Ref CognitoUserPool
+
+  # CognitoUserPoolClient:
+  #   Type: "AWS::Cognito::UserPoolClient"
+  #   Properties:
+  #     ClientName: !Sub "cognito-${SystemCode}-${SystemEnv}-client"
+  #     UserPoolId: !Ref CognitoUserPool
+  #     CallbackURLs:
+  #       - !Join ["", [https://, !GetAtt CloudFrontDistribution.DomainName]]
+  #     SupportedIdentityProviders:
+  #       - COGNITO
+  #     AllowedOAuthFlows:
+  #       - code
+  #     AllowedOAuthFlowsUserPoolClient: true
+  #     AllowedOAuthScopes:
+  #       - openid
+
+
