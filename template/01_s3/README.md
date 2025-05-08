@@ -9,7 +9,8 @@ S3の構築。
 ## 環境変数設定
 
 ```bash
-SYSTEM_ENV=  # Your system environment (e.g., dev, stg, prd, 000, 111)
+SYSTEM_CODE=  # Your system code or name (e.g., alice, bob, charlie)
+SYSTEM_ENV=   # Your system environment (e.g., dev, stg, prd, 000, 111)
 
 ```
 
