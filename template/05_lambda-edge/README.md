@@ -68,6 +68,7 @@ zip -r ../cognito-at-edge.zip ./*
 #### ファイルアップロード
 
 ```bash
+cd ../
 aws lambda update-function-code --function-name lmd-$SYSTEM_CODE-$SYSTEM_ENV-auth --zip-file fileb://cognito-at-edge.zip --region us-east-1
 
 ```
