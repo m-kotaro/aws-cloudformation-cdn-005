@@ -1,0 +1,25 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "ACM"
+
+Parameters:
+  SystemCode:
+    Type: "String"
+  SystemEnv:
+    Type: "String"
+
+Resources:
+  ACM:
+    Type: "AWS::CertificateManager::Certificate"
+    Properties:
+      DomainName: { Fn::ImportValue: !Sub "hostedzone-${SystemCode}-${SystemEnv}-name" }
+      ValidationMethod: "DNS"
+      DomainValidationOptions:
+        - DomainName: { Fn::ImportValue: !Sub "hostedzone-${SystemCode}-${SystemEnv}-name" }
+          HostedZoneId: { Fn::ImportValue: !Sub "hostedzone-${SystemCode}-${SystemEnv}-id" }
+
+Outputs:
+  CertificateArn:
+    Value: !Ref ACM
+    Export:
+      Name: !Sub "acm-${SystemCode}-${SystemEnv}-arn"
+
