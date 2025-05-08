@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "S3"
+
+Parameters:
+  SystemCode:
+    Type: "String"
+  SystemEnv:
+    Type: "String"
+
+Resources:
+  S3BucketContentsAsset:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "s3-${SystemCode}-${SystemEnv}-contents-asset"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+
+  S3BucketCodePipeline:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Sub "s3-${SystemCode}-${SystemEnv}-codepipeline"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAfter30Days
+            Status: Enabled
+            Prefix: ""
+            ExpirationInDays: 30
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
+
+Outputs:
+  S3BucketContentsAsset:
+    Value: !Ref S3BucketContentsAsset
+    Export:
+      Name: !Sub "s3-${SystemCode}-${SystemEnv}-contents-asset"
+  S3BucketContentsAssetArn:
+    Value: !GetAtt S3BucketContentsAsset.Arn
+    Export:
+      Name: !Sub "s3-${SystemCode}-${SystemEnv}-contents-asset-arn"
+  S3BucketCodePipeline:
+    Value: !Ref S3BucketCodePipeline
+    Export:
+      Name: !Sub "s3-${SystemCode}-${SystemEnv}-codepipeline"
+  S3BucketCodePipelineArn:
+    Value: !GetAtt S3BucketCodePipeline.Arn
+    Export:
+      Name: !Sub "s3-${SystemCode}-${SystemEnv}-codepipeline-arn"
+
+
