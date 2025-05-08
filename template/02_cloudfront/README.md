@@ -11,9 +11,9 @@ CDNの構築。
 basic認証用のユーザーとパスワードをここで設定する。
 
 ```bash
-SYSTEM_ENV=  # Your system environment (e.g., dev, stg, prd, 000, 111)
-USER=        # Your credential user (e.g., admin@example.com)
-PASSWORD=    # Your credential password (e.g., P@ssw0rd123)
+SYSTEM_CODE=  # Your system code or name (e.g., alice, bob, charlie)
+SYSTEM_ENV=   # Your system environment (e.g., dev, stg, prd, 000, 111)
+
 ```
 
 ---

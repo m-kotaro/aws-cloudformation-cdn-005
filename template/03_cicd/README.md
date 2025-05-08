@@ -11,6 +11,7 @@ cicdの構築。
 CICDで実装するブランチ名とオーガニゼーションをここで設定する。
 
 ```bash
+SYSTEM_CODE=        # Your system code or name (e.g., alice, bob, charlie)
 SYSTEM_ENV=         # Your system environment (e.g., dev, stg, prd, 000, 111)
 BRANCH_NAME=        # Your git branch name (e.g., main, develop, feature-xxx)
 FULL_REPOSITORY_ID= # Your full GitHub repository ID (e.g., my-org/my-repo)
@@ -27,6 +28,8 @@ aws cloudformation create-stack --stack-name stack-$SYSTEM_CODE-$SYSTEM_ENV-git-
 aws cloudformation wait stack-create-complete --stack-name stack-$SYSTEM_CODE-$SYSTEM_ENV-git-connection
 
 ```
+
+### 接続更新
 
 ---
 
