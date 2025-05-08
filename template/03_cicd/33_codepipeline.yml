@@ -6,11 +6,9 @@ Parameters:
     Type: "String"
   SystemEnv:
     Type: "String"
-  RepositoryName:
+  FullRepositoryId:
     Type: "String"
   BranchName:
-    Type: "String"
-  GitHubOrganizationName:
     Type: "String"
 
 Resources:
@@ -80,7 +78,7 @@ Resources:
               Configuration: 
                 BranchName: !Ref BranchName
                 ConnectionArn: { Fn::ImportValue: !Sub "git-${SystemCode}-${SystemEnv}-arn" }
-                FullRepositoryId: !Sub "${GitHubOrganizationName}/${RepositoryName}"
+                FullRepositoryId: !Ref FullRepositoryId
                 OutputArtifactFormat: "CODE_ZIP"
               OutputArtifacts: 
                 - Name: "SourceArtifact"
