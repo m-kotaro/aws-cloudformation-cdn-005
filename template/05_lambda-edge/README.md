@@ -44,16 +44,16 @@ cd template/05_lambda-edge/src
 ```bash
 export COGNITO_OUTPUTS=$(aws cloudformation describe-stacks --stack-name stack-$SYSTEM_CODE-$SYSTEM_ENV-cognito --query "Stacks[0].Outputs" --output json --region us-east-1)
 
-export COGNITO_USER_POOL_ID=$(echo "$HOSTEDZONE_OUTPUTS" | jq -r '.[] | select(.OutputKey=="CognitoUserPoolId") | .OutputValue')
-export COGNITO_USER_POOL_APP_ID=$(echo "$HOSTEDZONE_OUTPUTS" | jq -r '.[] | select(.OutputKey=="CognitoUserPoolAppId") | .OutputValue')
-export COGNITO_USER_POOL_DOMAIN=$(echo "$HOSTEDZONE_OUTPUTS" | jq -r '.[] | select(.OutputKey=="CognitoUserPoolDomain") | .OutputValue')
+export COGNITO_USER_POOL_ID=$(echo "$COGNITO_OUTPUTS" | jq -r '.[] | select(.OutputKey=="CognitoUserPoolId") | .OutputValue')
+export COGNITO_USER_POOL_APP_ID=$(echo "$COGNITO_OUTPUTS" | jq -r '.[] | select(.OutputKey=="CognitoUserPoolAppId") | .OutputValue')
+export COGNITO_USER_POOL_DOMAIN=$(echo "$COGNITO_OUTPUTS" | jq -r '.[] | select(.OutputKey=="CognitoUserPoolDomain") | .OutputValue')
 
 # コードを置換
-sed -i '' \
+sed -i \
  -e "s|{{CognitoUserPoolId}}|${COGNITO_USER_POOL_ID}|g" \
  -e "s|{{CognitoUserPoolAppId}}|${COGNITO_USER_POOL_APP_ID}|g" \
  -e "s|{{CognitoUserPoolDomain}}|${COGNITO_USER_POOL_DOMAIN}|g" \
-./index.js 
+./index.js
 
 ```
 
@@ -62,11 +62,52 @@ sed -i '' \
 ```bash
 npm install cognito-at-edge
 zip -r ../cognito-at-edge.zip ./*
-cd ..
+
 ```
 
-### Lambdaバージョン発行
+#### ファイルアップロード
 
 ```bash
-aws lambda publish-version --function-name lmd-$SYSTEM_CODE-$SYSTEM_ENV-auth --region us-east-1
+aws lambda update-function-code --function-name lmd-$SYSTEM_CODE-$SYSTEM_ENV-auth --zip-file fileb://cognito-at-edge.zip --region us-east-1
+
+```
+
+#### Lambdaバージョン発行
+
+```bash
+export LAMBDA_ARN=$(aws lambda publish-version --function-name lmd-$SYSTEM_CODE-$SYSTEM_ENV-auth --region us-east-1 --query 'FunctionArn' --output text)
+
+```
+
+#### CloudFront更新
+
+```bash
+aws cloudfront get-distribution-config --id $(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='cloudfront-${SYSTEM_CODE}-${SYSTEM_ENV}'].Id" --output text) > config.json
+
+```
+
+#### CloudFront新設定値作成　
+
+```bash
+export ETAG=$(jq -r '.ETag' config.json)
+jq --arg arn "$LAMBDA_ARN" '
+  .DistributionConfig
+  | .DefaultCacheBehavior.LambdaFunctionAssociations = {
+      Quantity: 1,
+      Items: [
+        {
+          EventType: "viewer-request",
+          IncludeBody: false,
+          LambdaFunctionARN: $arn
+        }
+      ]
+    }
+' config.json > updated-config.json
+```
+
+#### CloudFront設定更新
+
+```bash
+aws cloudfront update-distribution --id $(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='cloudfront-${SYSTEM_CODE}-${SYSTEM_ENV}'].Id" --output text) --if-match "$ETAG" --distribution-config file://updated-config.json
+
 ```
