@@ -30,6 +30,17 @@ aws cloudformation wait stack-create-complete --stack-name stack-$SYSTEM_CODE-$S
 
 ### Lambda edge デプロイ
 
+Lambda@Edgeをデプロイします
+
+#### ディレクトリ移動
+
+```bash
+cd template/05_lambda-edge/src
+
+```
+
+#### コード置換
+
 ```bash
 export COGNITO_OUTPUTS=$(aws cloudformation describe-stacks --stack-name stack-$SYSTEM_CODE-$SYSTEM_ENV-cognito --query "Stacks[0].Outputs" --output json --region us-east-1)
 
@@ -46,3 +57,16 @@ sed -i '' \
 
 ```
 
+#### コードzip化
+
+```bash
+npm install cognito-at-edge
+zip -r ../cognito-at-edge.zip ./*
+cd ..
+```
+
+### Lambdaバージョン発行
+
+```bash
+aws lambda publish-version --function-name lmd-$SYSTEM_CODE-$SYSTEM_ENV-auth --region us-east-1
+```
