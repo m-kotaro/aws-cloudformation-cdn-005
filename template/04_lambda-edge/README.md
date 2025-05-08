@@ -8,8 +8,6 @@ Cognitoの構築。
 
 ## 環境変数設定
 
-basic認証用のユーザーとパスワードをここで設定する。
-
 ```bash
 SYSTEM_CODE=  # Your system code or name (e.g., alice, bob, charlie)
 SYSTEM_ENV=   # Your system environment (e.g., dev, stg, prd, 000, 111)
